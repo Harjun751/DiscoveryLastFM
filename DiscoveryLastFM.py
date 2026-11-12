@@ -38,6 +38,8 @@ if 'MAX_SIMILAR_PER_ART' not in globals():
     MAX_SIMILAR_PER_ART = 20
 if 'MAX_POP_ALBUMS' not in globals():
     MAX_POP_ALBUMS = 5
+if 'MAX_ALBUMS_TO_ADD' not in globals():
+    MAX_ALBUMS_TO_ADD = 0
 if 'CACHE_TTL_HOURS' not in globals():
     CACHE_TTL_HOURS = 24
 if 'DEBUG_PRINT' not in globals():
@@ -402,6 +404,7 @@ def validate_configuration():
         "MIN_PLAYS": (1, 1000),
         "MAX_SIMILAR_PER_ART": (1, 100),
         "MAX_POP_ALBUMS": (1, 50),
+        "MAX_ALBUMS_TO_ADD": (0, 500),
         "CACHE_TTL_HOURS": (1, 168)  # 1 settimana max
     }
     
@@ -427,11 +430,15 @@ def validate_configuration():
             f"Invalid configuration for {service_type}. "
             f"Available services: {available}"
         )
+
+    max_album_limit = config_dict.get("MAX_ALBUMS_TO_ADD", 0)
+    # Show "Unlimited" text when max_album_limit is set to 0
+    max_album_limit_display = "unlimited" if not max_album_limit else max_album_limit
     
     log.info(f"Configuration validated successfully for {service_type}")
     log.info(f"- Discovery scope: {config_dict.get('RECENT_MONTHS', 3)} months, {config_dict.get('MIN_PLAYS', 20)} min plays")
     log.info(f"- Rate limits: LastFM {request_limit}/s, MusicBrainz {mbz_delay}s delay")
-    log.info(f"- Processing limits: {config_dict.get('MAX_SIMILAR_PER_ART', 20)} similar artists, {config_dict.get('MAX_POP_ALBUMS', 5)} albums each")
+    log.info(f"- Processing limits: {config_dict.get('MAX_SIMILAR_PER_ART', 20)} similar artists, {config_dict.get('MAX_POP_ALBUMS', 5)} albums each, {max_album_limit_display} albums to add per run")
 
 def sync():
     """Sync function modificata per service abstraction"""
@@ -455,10 +462,13 @@ def sync():
         seen = set()
         fallback_ids = []
         success_count = 0
+        added_count = 0
         error_count = 0
         skipped_count = 0
         
         for name, aid in recent:
+            if (MAX_ALBUMS_TO_ADD and added_count >= MAX_ALBUMS_TO_ADD):
+                break
             if not aid:
                 continue
                 
@@ -497,6 +507,8 @@ def sync():
 
             proc = 0
             for s in sims:
+                if (MAX_ALBUMS_TO_ADD and added_count >= MAX_ALBUMS_TO_ADD):
+                    break
                 sim_name = s.get("name", "Sconosciuto")
                 sid = s.get("mbid")
                 sim_match = float(s.get("match", 0))
@@ -587,6 +599,7 @@ def sync():
                         try:
                             if music_service.add_album(album_info):
                                 # Queue album
+                                added_count += 1
                                 if music_service.queue_album(album_info, force_new=True):
                                     added_albums.add(album_info.mbid)
                                     success_count += 1
@@ -594,6 +607,8 @@ def sync():
                                     # Nota: cache salvata in batch alla fine per performance
                                 else:
                                     log.warning(f"Album {album_info.title} aggiunto ma queue fallita")
+                                if (MAX_ALBUMS_TO_ADD and added_count >= MAX_ALBUMS_TO_ADD):
+                                    break
                             else:
                                 error_count += 1
                                 log.error(f"Fallito add album {album_info.title}")

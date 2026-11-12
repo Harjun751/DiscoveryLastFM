@@ -52,6 +52,7 @@ MIN_PLAYS = 20                 # Minimum plays to consider an artist
 SIMILAR_MATCH_MIN = 0.43       # Minimum similarity match threshold
 MAX_SIMILAR_PER_ART = 20       # Max similar artists per artist
 MAX_POP_ALBUMS = 5             # Max popular albums to fetch per artist
+MAX_ALBUMS_TO_ADD = 0          # Max albums to add per run. Set to 0 for no limit.
 CACHE_TTL_HOURS = 48           # Cache time-to-live in hours
 
 # === API RATE LIMITING ===

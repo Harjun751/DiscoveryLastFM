@@ -177,6 +177,7 @@ The script offers several configurable parameters:
 | `SIMILAR_MATCH_MIN` | 0.46 | Minimum similarity score for artist matching |
 | `MAX_SIMILAR_PER_ART` | 20 | Maximum similar artists to process per artist |
 | `MAX_POP_ALBUMS` | 5 | Maximum popular albums to queue per artist |
+| `MAX_ALBUMS_TO_ADD` | 0 | Maximum albums to add per run (0 = unlimited) |
 | `CACHE_TTL_HOURS` | 24 | Cache time-to-live in hours |
 
 ### Lidarr-Specific Configuration
